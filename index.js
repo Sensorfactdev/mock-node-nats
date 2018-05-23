@@ -7,30 +7,25 @@ const {
 } = require('events');
 
 /**
- * NB: The subs are stored in an array shared by all instances of the Transport
- *     class.
+ * NB: The subs are stored in 2 maps shared by all instances of the NATS class.
  */
-const subs = [];
+const subsBySid = new Map();
+const subsBySubject = new Map();
 
 class NATS extends EventEmitter {
-  constructor() {
-    super();
-    this.connected = false;
-  }
-
   /**
    * The mocked transport's subs for testing purposes.
    */
   static get subs() {
-    return subs;
+    return subsBySid;
   }
 
   /**
    * Fakes a connection to a nats-server and returns the client.
+   *
+   * @returns {NATS} client
    */
   static connect() {
-    this.connected = true;
-
     const nats =  new NATS();
     process.nextTick(() => nats.emit('connect'));
 
@@ -41,7 +36,6 @@ class NATS extends EventEmitter {
    * Fakes a disconnection.
    */
   close() {
-    this.connected = false;
     process.nextTick(() => this.emit('disconnect'));
   }
 
@@ -57,11 +51,13 @@ class NATS extends EventEmitter {
   subscribe(subject, callback) {
     const sid = uuid();
 
-    subs.push({
+    const sub = {
       sid,
       subject,
       callback
-    });
+    };
+
+    this._addSub(sub);
 
     return sid;
   }
@@ -72,8 +68,12 @@ class NATS extends EventEmitter {
    * @param {String} sid
    */
   unsubscribe(sid) {
-    const sub = this._findSubBySid(sid);
-    subs.splice(subs.indexOf(sub), 1);
+    const sub = subsBySid.get(sid);
+
+    if (sub == null) return;
+
+    subsBySid.delete(sid);
+    subsBySubject.get(sub.subject).delete(sid);
   }
 
   /**
@@ -85,9 +85,9 @@ class NATS extends EventEmitter {
    * @param {String} replyTo
    */
   publish(subject, message, replyTo) {
-    const _subs = this._findSubsBySubject(subject);
+    const subs = subsBySubject.get(subject) || new Map();
 
-    for (const sub of _subs) {
+    for (const sub of subs.values()) {
       sub.callback(message, replyTo, subject);
     }
   }
@@ -100,27 +100,32 @@ class NATS extends EventEmitter {
    * @param {String} message
    * @param {Object} options
    * @param {Function} callback
+   *
+   * @returns {String} sid
    */
   request(subject, message, options, callback) {
     const sid = uuid();
 
-    subs.push({
+    const sub = {
       sid,
       subject: sid,
       callback
-    });
+    };
+
+    this._addSub(sub);
 
     this.publish(subject, message, sid);
 
     return sid;
   }
 
-  _findSubBySid(sid) {
-    return subs.filter(sub => sub.sid === sid);
-  }
+  _addSub(sub) {
+    subsBySid.set(sub.sid, sub);
 
-  _findSubsBySubject(subject) {
-    return subs.filter(sub => sub.subject === subject);
+    // NOTE: `subsBySubject` is a map (by subject) of maps (by sid)
+    const subjectSubs = subsBySubject.get(sub.subject) || new Map();
+    subjectSubs.set(sub.sid, sub);
+    subsBySubject.set(sub.subject, subjectSubs);
   }
 }
 
