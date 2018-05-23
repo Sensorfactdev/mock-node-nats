@@ -1,0 +1,44 @@
+{
+  "name": "@sensorfactdev/mock-node-nats",
+  "version": "0.1.0",
+  "description": "A mock NATS client for Node.js ",
+  "main": "index.js",
+  "repository": "https://github.com/Sensorfactdev/mock-node-nats.git",
+  "author": "Alexandre Borrego <alexandre@sensorfact.nl>",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint './index.js'",
+    "test": "jest --coverage --silent=false"
+  },
+  "dependencies": {
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.11.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.1.0",
+    "jest": "^22.4.3",
+    "jest-junit": "^3.7.0"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "testMatch": [
+      "**/test/**/*.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "fixtures.js",
+      "/fixtures/"
+    ],
+    "testResultsProcessor": "./node_modules/jest-junit"
+  },
+  "jest-junit": {
+    "suiteName": "Tests",
+    "output": "./reports/junit.xml"
+  }
+}
