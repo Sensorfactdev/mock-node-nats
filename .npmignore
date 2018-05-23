@@ -1,0 +1,6 @@
+.vscode
+coverage
+test
+.eslintrc
+npm-debug.log
+yarn-error.log
