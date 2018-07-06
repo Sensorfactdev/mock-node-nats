@@ -49,6 +49,7 @@ class NATS extends EventEmitter {
    * @returns {String} sid
    */
   subscribe(subject, callback) {
+    // TODO: validate subject syntax
     const sid = uuid();
 
     const sub = {
@@ -85,9 +86,9 @@ class NATS extends EventEmitter {
    * @param {String} replyTo
    */
   publish(subject, message, replyTo) {
-    const subs = subsBySubject.get(subject) || new Map();
+    const subs = this._getSubsBySubject(subject);
 
-    for (const sub of subs.values()) {
+    for (const sub of subs) {
       sub.callback(message, replyTo, subject);
     }
   }
@@ -117,6 +118,22 @@ class NATS extends EventEmitter {
     this.publish(subject, message, sid);
 
     return sid;
+  }
+
+  _getSubsBySubject(subject) {
+    return Array.from(subsBySubject.keys())
+      .filter(_subject => {
+        // NB: this assumes a valid subject syntax
+        const regExpString = _subject
+          .replace('>',   '[a-zA-Z0-9\\.]+') // '>' full wildcard
+          .replace(/\*/g, '[a-zA-Z0-9]+')    // '*' token wildcard
+          .replace(/\./g, '\\.');            // escape dots
+
+        const regExp = new RegExp(`^${regExpString}$`, 'g');
+        return regExp.test(subject);
+      })
+      // Get subjects and flatten them
+      .reduce((acc, s) => [ ...acc, ...subsBySubject.get(s).values() ], []);
   }
 
   _addSub(sub) {

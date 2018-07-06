@@ -4,7 +4,7 @@ This is a small mocking library aimed at facilitating tests of our NATS-connecte
 
 It exposes a `NATS` class based on the API provided by [`node-nats`](https://github.com/nats-io/node-nats). It maintains an in-memory "bus" shared accross the class' instances.
 
-**NB**: This is very much a work in progress that fits our particular current needs. Additional development is needed to mock the `node-nats` API more faithfully, e.g. supporting wildcard subscriptions, completing the signatures of existing methods, etc.
+**NB**: This is very much a work in progress that fits our particular current needs. Additional development is needed to mock the `node-nats` API more faithfully, e.g. supporting options, completing the signatures of existing methods, etc.
 
 
 ## Installation
