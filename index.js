@@ -10,7 +10,6 @@ const {
  * NB: The subs are stored in 2 maps shared by all instances of the NATS class.
  */
 const subsBySid = new Map();
-const subsBySubject = new Map();
 
 class NATS extends EventEmitter {
   /**
@@ -52,9 +51,16 @@ class NATS extends EventEmitter {
     // TODO: validate subject syntax
     const sid = uuid();
 
+    // Handle wild cards
+    // NB: this assumes a valid subject syntax
+    const _subject = `^${subject
+      .replace('>',   '[a-zA-Z0-9\\.]+') // '>' full wildcard
+      .replace(/\*/g, '[a-zA-Z0-9]+')    // '*' token wildcard
+      .replace(/\./g, '\\.')}$`;            // escape dots
+
     const sub = {
       sid,
-      subject,
+      subject: _subject,
       callback
     };
 
@@ -74,7 +80,6 @@ class NATS extends EventEmitter {
     if (sub == null) return;
 
     subsBySid.delete(sid);
-    subsBySubject.get(sub.subject).delete(sid);
   }
 
   /**
@@ -121,28 +126,13 @@ class NATS extends EventEmitter {
   }
 
   _getSubsBySubject(subject) {
-    return Array.from(subsBySubject.keys())
-      .filter(_subject => {
-        // NB: this assumes a valid subject syntax
-        const regExpString = _subject
-          .replace('>',   '[a-zA-Z0-9\\.]+') // '>' full wildcard
-          .replace(/\*/g, '[a-zA-Z0-9]+')    // '*' token wildcard
-          .replace(/\./g, '\\.');            // escape dots
-
-        const regExp = new RegExp(`^${regExpString}$`, 'g');
-        return regExp.test(subject);
-      })
-      // Get subjects and flatten them
-      .reduce((acc, s) => [ ...acc, ...subsBySubject.get(s).values() ], []);
+    return Array.from(subsBySid.values())
+      .filter(({ subject: _subject }) =>
+        new RegExp(_subject, 'g').test(subject));
   }
 
   _addSub(sub) {
     subsBySid.set(sub.sid, sub);
-
-    // NOTE: `subsBySubject` is a map (by subject) of maps (by sid)
-    const subjectSubs = subsBySubject.get(sub.subject) || new Map();
-    subjectSubs.set(sub.sid, sub);
-    subsBySubject.set(sub.subject, subjectSubs);
   }
 }
 
