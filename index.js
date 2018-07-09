@@ -10,7 +10,6 @@ const {
  * NB: The subs are stored in 2 maps shared by all instances of the NATS class.
  */
 const subsBySid = new Map();
-const subsBySubject = new Map();
 
 class NATS extends EventEmitter {
   /**
@@ -49,11 +48,19 @@ class NATS extends EventEmitter {
    * @returns {String} sid
    */
   subscribe(subject, callback) {
+    // TODO: validate subject syntax
     const sid = uuid();
+
+    // Handle wild cards
+    // NB: this assumes a valid subject syntax
+    const _subject = `^${subject
+      .replace('>',   '[a-zA-Z0-9\\.]+') // '>' full wildcard
+      .replace(/\*/g, '[a-zA-Z0-9]+')    // '*' token wildcard
+      .replace(/\./g, '\\.')}$`;            // escape dots
 
     const sub = {
       sid,
-      subject,
+      subject: _subject,
       callback
     };
 
@@ -73,7 +80,6 @@ class NATS extends EventEmitter {
     if (sub == null) return;
 
     subsBySid.delete(sid);
-    subsBySubject.get(sub.subject).delete(sid);
   }
 
   /**
@@ -85,9 +91,9 @@ class NATS extends EventEmitter {
    * @param {String} replyTo
    */
   publish(subject, message, replyTo) {
-    const subs = subsBySubject.get(subject) || new Map();
+    const subs = this._getSubsBySubject(subject);
 
-    for (const sub of subs.values()) {
+    for (const sub of subs) {
       sub.callback(message, replyTo, subject);
     }
   }
@@ -119,13 +125,14 @@ class NATS extends EventEmitter {
     return sid;
   }
 
+  _getSubsBySubject(subject) {
+    return Array.from(subsBySid.values())
+      .filter(({ subject: _subject }) =>
+        new RegExp(_subject, 'g').test(subject));
+  }
+
   _addSub(sub) {
     subsBySid.set(sub.sid, sub);
-
-    // NOTE: `subsBySubject` is a map (by subject) of maps (by sid)
-    const subjectSubs = subsBySubject.get(sub.subject) || new Map();
-    subjectSubs.set(sub.sid, sub);
-    subsBySubject.set(sub.subject, subjectSubs);
   }
 }
 
