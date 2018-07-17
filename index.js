@@ -9,14 +9,21 @@ const {
 /**
  * NB: The subs are stored in 2 maps shared by all instances of the NATS class.
  */
-const subsBySid = new Map();
+let _subs = new Map();
 
 class NATS extends EventEmitter {
   /**
    * The mocked transport's subs for testing purposes.
    */
   static get subs() {
-    return subsBySid;
+    return _subs;
+  }
+
+  static set subs(subs) {
+    if (!(subs instanceof Map))
+      throw new TypeError('subs must be a map');
+
+    _subs = subs;
   }
 
   /**
@@ -75,11 +82,11 @@ class NATS extends EventEmitter {
    * @param {String} sid
    */
   unsubscribe(sid) {
-    const sub = subsBySid.get(sid);
+    const sub = _subs.get(sid);
 
     if (sub == null) return;
 
-    subsBySid.delete(sid);
+    _subs.delete(sid);
   }
 
   /**
@@ -126,13 +133,13 @@ class NATS extends EventEmitter {
   }
 
   _getSubsBySubject(subject) {
-    return Array.from(subsBySid.values())
+    return Array.from(_subs.values())
       .filter(({ subject: _subject }) =>
         new RegExp(_subject, 'g').test(subject));
   }
 
   _addSub(sub) {
-    subsBySid.set(sub.sid, sub);
+    _subs.set(sub.sid, sub);
   }
 }
 
