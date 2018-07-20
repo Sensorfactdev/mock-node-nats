@@ -6,6 +6,9 @@ const {
   EventEmitter
 } = require('events');
 
+// Legal characters
+const chars = 'a-zA-Z0-9\\-\\_';
+
 /**
  * NB: The subs are stored in 2 maps shared by all instances of the NATS class.
  */
@@ -61,9 +64,9 @@ class NATS extends EventEmitter {
     // Handle wild cards
     // NB: this assumes a valid subject syntax
     const _subject = `^${subject
-      .replace('>',   '[a-zA-Z0-9\\.]+') // '>' full wildcard
-      .replace(/\*/g, '[a-zA-Z0-9]+')    // '*' token wildcard
-      .replace(/\./g, '\\.')}$`;            // escape dots
+      .replace('>',   `[${chars}\\.]+`) // '>' full wildcard
+      .replace(/\*/g, `[${chars}]+`)    // '*' token wildcard
+      .replace(/\./g, '\\.')}$`;        // escape dots
 
     const sub = {
       sid,
