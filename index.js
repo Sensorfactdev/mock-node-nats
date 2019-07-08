@@ -122,6 +122,16 @@ class NATS extends EventEmitter {
   request(subject, message, options, callback) {
     const sid = uuid();
 
+    if (typeof message === 'function') {
+      callback = message;
+      message = EMPTY;
+      opt_options = null;
+    }
+    if (typeof options === 'function') {
+        callback = options;
+        options = null;
+    }
+
     const sub = {
       sid,
       subject: sid,
