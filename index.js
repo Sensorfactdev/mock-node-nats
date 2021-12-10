@@ -134,7 +134,7 @@ class NATS extends EventEmitter {
 
     const sub = {
       sid,
-      subject: sid,
+      subject,
       callback
     };
 

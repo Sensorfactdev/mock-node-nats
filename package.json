@@ -1,6 +1,6 @@
 {
   "name": "@sensorfactdev/mock-node-nats",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A mock NATS client for Node.js ",
   "main": "index.js",
   "repository": "https://github.com/Sensorfactdev/mock-node-nats.git",
